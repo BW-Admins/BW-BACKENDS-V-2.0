@@ -84,29 +84,44 @@ exports.addProfession = async (req, res) => {
   }
 };
 
+// c:\Users\kd1812\Desktop\BW NEW\BestWorkers_Server\controllers\professionController.js
+
 exports.getProfessionalsByService = async (req, res) => {
-  
   try {
-    const { serviceName } = req.query;
+    console.log("Backend Controller: Received req.query:", JSON.stringify(req.query)); // Add this log
+    const { serviceName, serviceCategory } = req.query;
 
     if (!serviceName) {
       return res.status(400).json({
         success: false,
-        error: 'Service name is required'
+        error: 'Service name query parameter is required'
       });
     }
 
-    // Using a case-insensitive regex to find matches
-    // This will find "Plumber", "plumber", "PLUMBER", etc.
-    // It also allows partial matches if serviceName is part of a larger string in the DB.
-    // If you need exact matches only (but still case-insensitive), you might adjust the regex.
-    const professions = await Profession.find({
-      serviceName: { $regex: `^${serviceName}$`, $options: 'i' }, 
-    }).select('-__v'); // Exclude the __v field from the results
+    const queryOptions = {
+      // Ensure serviceName is treated as a literal string for the regex
+      serviceName: { $regex: `^${serviceName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' },
+    };
+
+    if (serviceCategory) {
+      // Ensure serviceCategory is treated as a literal string for the regex
+      queryOptions.serviceCategory = { $regex: `^${serviceCategory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' };
+    }
+
+    console.log("Backend: Executing query with options:", JSON.stringify(queryOptions)); // Log the exact query
+
+    const professions = await Profession.find(queryOptions).select('-__v');
+    
+    console.log(`Backend: Found ${professions.length} professionals for query:`, JSON.stringify(queryOptions));
+    // If professions.length is > 0, log the first one to inspect its serviceCategory
+    if (professions.length > 0) {
+        console.log("Backend: First matching professional's serviceCategory:", professions[0].serviceCategory);
+    }
 
     res.status(200).json({
       success: true,
-      data: professions
+      data: professions // This data is used by ServiceDetailScreen
+                       // For HomeScreen counts, it's response.data.length
     });
   } catch (err) {
     console.error("Error while fetching professionals:", err);
@@ -117,6 +132,41 @@ exports.getProfessionalsByService = async (req, res) => {
     });
   }
 };
+
+// exports.getProfessionalsByService = async (req, res) => {
+//   try {
+//     const { serviceName, serviceCategory } = req.query; // Add serviceCategory
+
+//     if (!serviceName) {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'Service name query parameter is required'
+//       });
+//     }
+
+//     const queryOptions = {
+//       serviceName: { $regex: `^${serviceName}$`, $options: 'i' }, // Exact match for serviceName
+//     };
+
+//     if (serviceCategory) {
+//       queryOptions.serviceCategory = { $regex: `^${serviceCategory}$`, $options: 'i' }; // Exact match for serviceCategory
+//     }
+
+//     const professions = await Profession.find(queryOptions).select('-__v');
+
+//     res.status(200).json({
+//       success: true,
+//       data: professions
+//     });
+//   } catch (err) {
+//     console.error("Error while fetching professionals:", err);
+//     res.status(500).json({
+//       success: false,
+//       error: 'Server error while fetching professionals',
+//       details: err.message
+//     });
+//   }
+// };
 
 exports.updateUserProfessionalProfile = async (req, res) => {
   try {
