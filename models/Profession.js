@@ -47,7 +47,6 @@ const ProfessionSchema = new mongoose.Schema({
   },
   servicePrice: {
     type: Number,
-    required: [true, 'Please add service price']
   },
   priceUnit: {
     type: String,
