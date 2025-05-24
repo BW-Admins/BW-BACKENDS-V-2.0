@@ -19,8 +19,6 @@ exports.addProfession = async (req, res) => {
       serviceName,
       designation,
       experience,
-      servicePrice, // Will be handled conditionally
-      priceUnit,    // Will be handled conditionally
       needSupport,
       professionDescription
     } = req.body;
@@ -47,20 +45,7 @@ exports.addProfession = async (req, res) => {
       // servicePrice and priceUnit are handled next
     };
 
-    // Conditionally add servicePrice if it's a valid number
-    if (servicePrice !== undefined && servicePrice !== null && String(servicePrice).trim() !== '') {
-      const parsedPrice = parseFloat(servicePrice);
-      if (!isNaN(parsedPrice)) {
-        professionPayload.servicePrice = parsedPrice;
-      }
-      // If not a valid number, servicePrice is simply not added to the payload,
-      // and Mongoose will not try to save it (making it truly optional).
-    }
-
-    // Conditionally add priceUnit if provided by client; otherwise, schema default applies
-    if (priceUnit !== undefined) {
-      professionPayload.priceUnit = priceUnit;
-    }
+    
 
     // Create new profession with the constructed payload
     const profession = await Profession.create(professionPayload);
@@ -83,8 +68,6 @@ exports.addProfession = async (req, res) => {
     res.status(400).json({ success: false, error: err.message || 'Failed to add profession.' });
   }
 };
-
-// c:\Users\kd1812\Desktop\BW NEW\BestWorkers_Server\controllers\professionController.js
 
 exports.getProfessionalsByService = async (req, res) => {
   try {
@@ -183,8 +166,7 @@ exports.updateUserProfessionalProfile = async (req, res) => {
       serviceName,
       designation,
       experience,
-      servicePrice,
-      priceUnit,
+     
       needSupport,
       professionDescription,
     } = req.body;
@@ -211,21 +193,6 @@ exports.updateUserProfessionalProfile = async (req, res) => {
     if (serviceName !== undefined) professionalProfile.serviceName = serviceName;
     if (designation !== undefined) professionalProfile.designation = designation; 
     if (experience !== undefined) professionalProfile.experience = experience;
-    
-    if (servicePrice !== undefined) {
-      if (servicePrice === null || String(servicePrice).trim() === '') {
-        professionalProfile.servicePrice = undefined; // Or null, to effectively remove/unset it
-      } else {
-        const parsed = parseFloat(servicePrice);
-        if (!isNaN(parsed)) {
-          professionalProfile.servicePrice = parsed;
-        }
-        // else: if invalid number provided, current logic does not update it. 
-        // You could add error handling or specific behavior here if needed.
-      }
-    }
-
-    if (priceUnit !== undefined) professionalProfile.priceUnit = priceUnit;
     if (needSupport !== undefined) professionalProfile.needSupport = needSupport;
     if (professionDescription !== undefined) professionalProfile.professionDescription = professionDescription;
 
