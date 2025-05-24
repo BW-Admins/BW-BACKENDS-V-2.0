@@ -45,14 +45,6 @@ const ProfessionSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add experience level']
   },
-  servicePrice: {
-    type: Number,
-    required: [true, 'Please add service price']
-  },
-  priceUnit: {
-    type: String,
-    default: 'per hour'
-  },
   needSupport: {
     type: Boolean,
     default: false
