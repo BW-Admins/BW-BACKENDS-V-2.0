@@ -42,23 +42,7 @@ exports.addProfession = async (req, res) => {
       experience,
       needSupport,
       professionDescription
-      // servicePrice and priceUnit are handled next
     };
-
-    // Conditionally add servicePrice if it's a valid number
-    if (servicePrice !== undefined && servicePrice !== null && String(servicePrice).trim() !== '') {
-      const parsedPrice = parseFloat(servicePrice);
-      if (!isNaN(parsedPrice)) {
-        professionPayload.servicePrice = parsedPrice;
-      }
-      // If not a valid number, servicePrice is simply not added to the payload,
-      // and Mongoose will not try to save it (making it truly optional).
-    }
-
-    // Conditionally add priceUnit if provided by client; otherwise, schema default applies
-    if (priceUnit !== undefined) {
-      professionPayload.priceUnit = priceUnit;
-    }
 
     // Create new profession with the constructed payload
     const profession = await Profession.create(professionPayload);
@@ -106,17 +90,30 @@ exports.getProfessionalsByService = async (req, res) => {
 
     console.log("Backend: Executing query with options:", JSON.stringify(queryOptions)); // Log the exact query
 
-    const professions = await Profession.find(queryOptions).select('-__v');
+    const professionsFromDB = await Profession.find(queryOptions).select('-__v').lean(); // Use .lean() for plain JS objects
     
-    console.log(`Backend: Found ${professions.length} professionals for query:`, JSON.stringify(queryOptions));
+    // Manually fetch user avatar status for each professional
+    const professionsWithAvatarInfo = await Promise.all(
+      professionsFromDB.map(async (prof) => {
+        const user = await User.findById(prof.user).select('avatar.data avatar.contentType').lean();
+        const hasAvatar = !!(user && user.avatar && user.avatar.data && user.avatar.contentType);
+        return {
+          ...prof,
+          userIdForAvatar: prof.user, // Pass the user ID for avatar URL construction
+          hasAvatar: hasAvatar,
+        };
+      })
+    );
+
+    console.log(`Backend: Found ${professionsWithAvatarInfo.length} professionals for query:`, JSON.stringify(queryOptions));
     // If professions.length is > 0, log the first one to inspect its serviceCategory
-    if (professions.length > 0) {
-        console.log("Backend: First matching professional's serviceCategory:", professions[0].serviceCategory);
+    if (professionsWithAvatarInfo.length > 0) {
+        console.log("Backend: First matching professional's serviceCategory:", professionsWithAvatarInfo[0].serviceCategory);
     }
 
     res.status(200).json({
       success: true,
-      data: professions // This data is used by ServiceDetailScreen
+      data: professionsWithAvatarInfo // Send data with avatar info
                        // For HomeScreen counts, it's response.data.length
     });
   } catch (err) {
@@ -179,8 +176,6 @@ exports.updateUserProfessionalProfile = async (req, res) => {
       serviceName,
       designation,
       experience,
-      servicePrice,
-      priceUnit,
       needSupport,
       professionDescription,
     } = req.body;
@@ -207,21 +202,6 @@ exports.updateUserProfessionalProfile = async (req, res) => {
     if (serviceName !== undefined) professionalProfile.serviceName = serviceName;
     if (designation !== undefined) professionalProfile.designation = designation; 
     if (experience !== undefined) professionalProfile.experience = experience;
-    
-    if (servicePrice !== undefined) {
-      if (servicePrice === null || String(servicePrice).trim() === '') {
-        professionalProfile.servicePrice = undefined; // Or null, to effectively remove/unset it
-      } else {
-        const parsed = parseFloat(servicePrice);
-        if (!isNaN(parsed)) {
-          professionalProfile.servicePrice = parsed;
-        }
-        // else: if invalid number provided, current logic does not update it. 
-        // You could add error handling or specific behavior here if needed.
-      }
-    }
-
-    if (priceUnit !== undefined) professionalProfile.priceUnit = priceUnit;
     if (needSupport !== undefined) professionalProfile.needSupport = needSupport;
     if (professionDescription !== undefined) professionalProfile.professionDescription = professionDescription;
 

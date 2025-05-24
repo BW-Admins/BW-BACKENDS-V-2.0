@@ -37,6 +37,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  avatar: {
+    data: Buffer, // To store the image binary data
+    contentType: String // To store the MIME type (e.g., 'image/jpeg', 'image/png')
+  },
   createdAt: {
     type: Date,
     default: Date.now,

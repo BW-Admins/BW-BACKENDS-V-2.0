@@ -241,7 +241,10 @@ exports.getMe = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    let profileData = { ...baseUser }; // Start with base user data
+    // Add a flag to indicate if an avatar exists
+    const hasAvatar = !!(baseUser.avatar && baseUser.avatar.data && baseUser.avatar.contentType);
+    // Start with base user data, explicitly exclude avatar data from this general profile response
+    let profileData = { ...baseUser, avatar: undefined, hasAvatar };
 
     if (baseUser.isProfession) {
       const Professional = require('../models/Profession'); // Adjust path if needed
